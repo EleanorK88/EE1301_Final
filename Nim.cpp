@@ -1,7 +1,7 @@
 using namespace std;
 
 #include <iostream>
-
+// added this
 int row1Sticks;
 int row2Sticks;
 int row3Sticks;
