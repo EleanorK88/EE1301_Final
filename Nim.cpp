@@ -10,6 +10,7 @@ int currentRow;
 bool takenStick;
 bool currentTurn;
 bool gameWon;
+//can yall see this?
 
 void removeRow(int rowNum); 
 void endTurn(); 
