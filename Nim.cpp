@@ -12,18 +12,17 @@ bool currentTurn;
 bool gameWon;
 //can yall see this?
 
-void removeRow(int rowNum); 
-void endTurn(); 
+void removeRow(int rowNum);
+void endTurn();
 
 void newGame()
 {
     row1Sticks = 1;
     row2Sticks = 3;
     row3Sticks = 5;
-    row4Sticks = 7; 
-} 
+    row4Sticks = 7;
+}
 
 int main()
 {
-
 }
