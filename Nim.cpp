@@ -1,7 +1,10 @@
 using namespace std;
-//did this work
-#include <iostream>
 
+#include <iostream>
+#include <cmath>
+//#include "Particle.h"
+
+//game state variables
 int row1Sticks;
 int row2Sticks;
 int row3Sticks;
@@ -10,19 +13,62 @@ int currentRow;
 bool takenStick;
 bool photonTurn; //could change this to enum instead of bool
 bool gameWon;
-//could add bool/enum to track winner 
+bool playAgain = true; //might not be needed 
 
-void removeRow(int rowNum); 
+//game methods
+void removeStick(int rowNum); 
 void endTurn(); 
 void forfeit(); 
 void newGame(bool photonCall);   
+bool checkForLoss(); 
 
-int main()
+//photon variables and methods 
+
+//cloud variables and methods 
+
+int main() //will be changed to loop method
 {
+    while(playAgain)
+    {
+        newGame(true); //should wait for someone to call new game
 
+        while(true)
+        {
+            if(photonTurn)
+            {
+                if(checkForLoss)
+                {
+                    cout << "photon player loses";
+                    break; 
+                }
+                while(photonTurn)
+                {
+                    //let photon player take actions 
+                }
+            }
+            
+            if(!photonTurn)
+            {
+                if(checkForLoss)
+                {
+                    cout << "website player loses";
+                    break; 
+                } 
+                while(!photonTurn)
+                {
+                    //let website player take actions 
+                }
+            }
+        }
+
+        cout << "would you like to play again? (y/n)"; //take this out later and just wait for newGame call 
+        char input; 
+        if(input == 'n')
+            playAgain = false; 
+    }
 }
 
-void removeRow(int rowNum)
+void removeStick(int rowNum)
 {
     if(currentRow == 0)
         currentRow = rowNum; 
@@ -91,4 +137,17 @@ void newGame(bool photonCall)
     takenStick = 0;
     currentRow = 0; 
     gameWon = false; 
+}
+
+bool checkForLoss()
+{
+    int sumSticks;
+    sumSticks = row1Sticks + row2Sticks + row3Sticks + row4Sticks; 
+    if(sumSticks <= 1) //there is one stick left, the player whos turn it is losses
+    {
+        gameWon = true;
+        return true;  
+    }
+    else
+        return false; 
 }
