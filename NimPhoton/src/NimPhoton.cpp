@@ -1,5 +1,6 @@
 // Include Particle Device OS APIs
 #include "Particle.h"
+#include "neopixel.h" 
 
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
