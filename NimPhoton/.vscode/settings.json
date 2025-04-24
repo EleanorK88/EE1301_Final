@@ -7,5 +7,6 @@
     },
     "particle.firmwareVersion": "5.9.0",
     "particle.targetPlatform": "p2",
-    "particle.targetDevice": "ElK88_Photon"
+    "particle.targetDevice": "ElK88_Photon",
+    "particle.debugWarningShown": true
 }

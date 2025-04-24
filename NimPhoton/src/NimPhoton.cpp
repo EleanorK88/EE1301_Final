@@ -39,6 +39,7 @@ int row3Pin = D4;
 int row4Pin = D5;
 int endTurnPin = D6;
 int forfeitPin = D7;
+int LEDPin = D10; 
 bool row1Pressed = false; 
 bool row2Pressed = false;
 bool row3Pressed = false;
@@ -57,6 +58,9 @@ void setup()
   pinMode(row4Pin, INPUT_PULLDOWN);
   pinMode(endTurnPin, INPUT_PULLDOWN);
   pinMode(forfeitPin, INPUT_PULLDOWN);
+  pinMode(LEDPin, OUTPUT); 
+  matrix.clear(); 
+  matrix.writeDisplay(); 
 }
 
 void loop() 
@@ -78,7 +82,7 @@ void loop()
   if(digitalRead(forfeitPin) && !forfeitPressed)
   {
     Serial.println("Button forfeit pressed"); 
-    playAgain = false; 
+    //playAgain = false; 
     //add some way to end program
     forfeitPressed = true; 
   }
@@ -89,25 +93,96 @@ void loop()
 
   while(playAgain)
   {
-    while(true)
-    {
+    //while(true)
+    //{
       if(photonTurn)
       {
-        if(checkForLoss)
+        if(checkForLoss())
         {
           Serial.println("Photon player loses!"); 
           playAgain = false; 
           break; 
         }
-        while(photonTurn)
+        while(photonTurn) //photon player takes actions
         {
-          //let photon player take actions 
+          //remove sticks from row 1 (top)
+          if(digitalRead(row1Pin) && !row1Pressed)
+          {
+            Serial.println("Button 1 pressed"); 
+            removeStick(1); 
+            row1Pressed = true; 
+          }
+          else if(!digitalRead(row1Pin))
+          {
+            row1Pressed = false; 
+          }
+
+          //remove sticks from row 2 
+          if(digitalRead(row2Pin) && !row2Pressed)
+          {
+            Serial.println("Button 2 pressed"); 
+            removeStick(2); 
+            row2Pressed = true; 
+          }
+          else if(!digitalRead(row2Pin))
+          {
+            row2Pressed = false; 
+          }
+
+          //remove sticks from row 3
+          if(digitalRead(row3Pin) && !row3Pressed)
+          {
+            Serial.println("Button 3 pressed"); 
+            removeStick(3); 
+            row3Pressed = true; 
+          }
+          else if(!digitalRead(row3Pin))
+          {
+            row3Pressed = false; 
+          }
+
+          //remove sticks from row 4 (bottom)
+          if(digitalRead(row4Pin) && !row4Pressed)
+          {
+            Serial.println("Button 4 pressed"); 
+            removeStick(4); 
+            row4Pressed = true; 
+          }
+          else if(!digitalRead(row4Pin))
+          {
+            row4Pressed = false; 
+          }
+
+          //end turn
+          if(digitalRead(endTurnPin) && !endTurnPressed)
+          {
+            Serial.println("Button end turn pressed"); 
+            endTurn(); 
+            endTurnPressed = true; 
+          }
+          else if(!digitalRead(endTurnPin))
+          {
+            endTurnPressed = false; 
+          }
+
+          //forfeit
+          if(digitalRead(forfeitPin) && !forfeitPressed)
+          {
+            Serial.println("Button forfeit pressed"); 
+            forfeit(); 
+            break; 
+            forfeitPressed = true; 
+          }
+          else if(!digitalRead(forfeitPin))
+          {
+            forfeitPressed = false; 
+          }
         }
       }
             
       if(!photonTurn)
       {
-        if(checkForLoss)
+        if(checkForLoss())
         {
           Serial.println("Website player loses"); 
           playAgain = false; 
@@ -118,7 +193,7 @@ void loop()
           //let website player take actions 
         }
       }
-    }
+    //}
   }
 }
 
@@ -132,6 +207,8 @@ void removeStick(int rowNum)
       row1Sticks--;
       takenStick = true; 
       Serial.println("Stick removed from row 1"); 
+      matrix.drawPixel(0,4, LED_OFF); 
+      matrix.drawPixel(1,4, LED_OFF);
     } 
   }
   if(rowNum == 2 && (currentRow == 2 || currentRow == 0)) 
@@ -142,6 +219,8 @@ void removeStick(int rowNum)
       row2Sticks--;
       takenStick = true; 
       Serial.println("Stick removed from row 2");  
+      matrix.drawPixel(2,row2Sticks+3, LED_OFF); 
+      matrix.drawPixel(3,row2Sticks+3, LED_OFF);
     } 
   }
   if(rowNum == 3 && (currentRow == 3 || currentRow == 0)) 
@@ -151,7 +230,9 @@ void removeStick(int rowNum)
       currentRow = 3;
       row3Sticks--;
       takenStick = true; 
-      Serial.println("Stick removed from row 3");  
+      Serial.println("Stick removed from row 3"); 
+      matrix.drawPixel(4,row3Sticks+2, LED_OFF); 
+      matrix.drawPixel(5,row3Sticks+2, LED_OFF); 
     } 
   }
   if(rowNum == 4 && (currentRow == 4 || currentRow == 0)) 
@@ -162,8 +243,11 @@ void removeStick(int rowNum)
       row4Sticks--;
       takenStick = true; 
       Serial.println("Stick removed from row 4");  
+      matrix.drawPixel(6,row4Sticks+1, LED_OFF); 
+      matrix.drawPixel(7,row4Sticks+1, LED_OFF);
     }  
   }
+  matrix.writeDisplay(); 
 }
 
 void endTurn()
@@ -173,12 +257,18 @@ void endTurn()
     photonTurn = !photonTurn; 
     takenStick = false; 
     currentRow = 0; 
+
+    if(photonTurn)
+      digitalWrite(LEDPin, HIGH); 
+    else
+      digitalWrite(LEDPin, LOW);
   }
 }
 
 void forfeit()
 {
   gameWon = true; 
+  playAgain = false; 
   if(photonTurn)
     Serial.print("Website Player Wins"); 
   else
@@ -197,6 +287,11 @@ void newGame(bool photonCall)
   currentRow = 0; 
   gameWon = false; 
 
+  if(photonCall)
+    digitalWrite(LEDPin, HIGH); 
+  else
+    digitalWrite(LEDPin, LOW); 
+
   displaySticks(); 
 }
 
@@ -206,6 +301,7 @@ bool checkForLoss()
   sumSticks = row1Sticks + row2Sticks + row3Sticks + row4Sticks; 
   if(sumSticks <= 1) //there is one stick left, the player whos turn it is losses
   {
+    Serial.println("Win found"); 
     gameWon = true;
     return true;  
   }
