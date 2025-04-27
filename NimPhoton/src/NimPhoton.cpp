@@ -3,10 +3,15 @@
 #include "C:\Users\elean\EE1301\FinalProject\EE1301_Final\NimPhoton\lib\neopixel\src\neopixel.h"
 #include "C:\Users\elean\EE1301\FinalProject\EE1301_Final\NimPhoton\lib\Adafruit_GFX_RK\src\Adafruit_GFX_RK.h"
 #include "C:\Users\elean\EE1301\FinalProject\EE1301_Final\NimPhoton\lib\Adafruit_LEDBackpack_RK\src\Adafruit_LEDBackpack_RK.h"
+#include <string>
+using namespace std; 
 
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 SerialLogHandler logHandler(LOG_LEVEL_INFO);
+
+//Device ID: 0a10aced202194944a067a68
+//Access Token: 464786ca8d3bb33534cfd6ab99305aa834cf4146
 
 //game state variables
 int row1Sticks;
@@ -15,20 +20,21 @@ int row3Sticks;
 int row4Sticks;
 int currentRow;
 bool takenStick;
-bool photonTurn; //could change this to enum instead of bool
+bool photonTurn; 
 bool gameWon;
-bool playAgain = false; //might not be needed 
+bool playAgain = false; //this is a bad name, playAgain tracks if a game is active
 
 //game methods
-void removeStick(int rowNum); 
-void endTurn(); 
-void forfeit(); 
-void newGame(bool photonCall);   
-bool checkForLoss(); 
+int removeStick(String rowNumS); 
+int endTurn(String dummy); 
+int forfeit(String dummy); 
+int newGame(String photonCall);   
+int checkForLoss(String dummy); 
 
 //Photon display methods 
 void displaySticks(); 
-void updateSitcks(); 
+void displaySmile();
+void displayFrown(); 
 
 //photon control variables 
 #define PIXEL_PIN SPI; 
@@ -61,15 +67,31 @@ void setup()
   pinMode(LEDPin, OUTPUT); 
   matrix.clear(); 
   matrix.writeDisplay(); 
+
+  Particle.variable("numSticks1", row1Sticks); 
+  Particle.variable("numSticks2", row2Sticks); 
+  Particle.variable("numSticks3", row3Sticks); 
+  Particle.variable("numSticks4", row4Sticks); 
+  Particle.variable("otherTurn", photonTurn); 
+  Particle.variable("winner", gameWon);
+  Particle.variable("currentGame", playAgain); 
+
+  Particle.function("takeStick", removeStick); 
+  Particle.function("endTurn", endTurn);
+  Particle.function("quit", forfeit);
+  Particle.function("startGame", newGame);   
+  //Particle.function("checkLoss", checkForLoss);
 }
 
 void loop() 
-{
+{ 
+  label:
+
   //start new game
   if(digitalRead(endTurnPin) && !endTurnPressed)
   {
     Serial.println("Button end turn pressed"); 
-    newGame(true);
+    newGame("true");
     playAgain = true;  
     endTurnPressed = true; 
   }
@@ -97,19 +119,23 @@ void loop()
     //{
       if(photonTurn)
       {
-        if(checkForLoss())
+        if(checkForLoss("dummy") == 1)
         {
           Serial.println("Photon player loses!"); 
+          displayFrown(); 
           playAgain = false; 
+          gameWon = true; 
           break; 
         }
         while(photonTurn) //photon player takes actions
         {
+          Particle.process(); 
+
           //remove sticks from row 1 (top)
           if(digitalRead(row1Pin) && !row1Pressed)
           {
             Serial.println("Button 1 pressed"); 
-            removeStick(1); 
+            removeStick("1"); 
             row1Pressed = true; 
           }
           else if(!digitalRead(row1Pin))
@@ -121,7 +147,7 @@ void loop()
           if(digitalRead(row2Pin) && !row2Pressed)
           {
             Serial.println("Button 2 pressed"); 
-            removeStick(2); 
+            removeStick("2"); 
             row2Pressed = true; 
           }
           else if(!digitalRead(row2Pin))
@@ -133,7 +159,7 @@ void loop()
           if(digitalRead(row3Pin) && !row3Pressed)
           {
             Serial.println("Button 3 pressed"); 
-            removeStick(3); 
+            removeStick("3"); 
             row3Pressed = true; 
           }
           else if(!digitalRead(row3Pin))
@@ -145,7 +171,7 @@ void loop()
           if(digitalRead(row4Pin) && !row4Pressed)
           {
             Serial.println("Button 4 pressed"); 
-            removeStick(4); 
+            removeStick("4"); 
             row4Pressed = true; 
           }
           else if(!digitalRead(row4Pin))
@@ -157,7 +183,7 @@ void loop()
           if(digitalRead(endTurnPin) && !endTurnPressed)
           {
             Serial.println("Button end turn pressed"); 
-            endTurn(); 
+            endTurn("dummy"); 
             endTurnPressed = true; 
           }
           else if(!digitalRead(endTurnPin))
@@ -169,7 +195,7 @@ void loop()
           if(digitalRead(forfeitPin) && !forfeitPressed)
           {
             Serial.println("Button forfeit pressed"); 
-            forfeit(); 
+            forfeit("dummy");  
             break; 
             forfeitPressed = true; 
           }
@@ -182,23 +208,29 @@ void loop()
             
       if(!photonTurn)
       {
-        if(checkForLoss())
+        if(checkForLoss("dummy") == 1)
         {
           Serial.println("Website player loses"); 
+          displaySmile(); 
           playAgain = false; 
+          gameWon = true; 
           break; 
         } 
-        while(!photonTurn)
+        while(!photonTurn) //website player can take actions
         {
-          //let website player take actions 
+          Particle.process(); 
+
+          if(gameWon)
+            break; 
         }
       }
     //}
   }
 }
 
-void removeStick(int rowNum)
+int removeStick(String rowNumS)
 {
+  int rowNum = stoi((string)rowNumS);  
   if(rowNum == 1 && (currentRow == 1 || currentRow == 0)) //could reformat this to read better
   {
     if(row1Sticks > 0)
@@ -247,10 +279,12 @@ void removeStick(int rowNum)
       matrix.drawPixel(7,row4Sticks+1, LED_OFF);
     }  
   }
+
   matrix.writeDisplay(); 
+  return 1; 
 }
 
-void endTurn()
+int endTurn(String dummy)
 {
   if(takenStick)
   {
@@ -262,40 +296,59 @@ void endTurn()
       digitalWrite(LEDPin, HIGH); 
     else
       digitalWrite(LEDPin, LOW);
+
+    Serial.print("Photon Turn:");
+    Serial.println(photonTurn); 
   }
+  return 1; 
 }
 
-void forfeit()
+int forfeit(String dummy)
 {
   gameWon = true; 
   playAgain = false; 
   if(photonTurn)
-    Serial.print("Website Player Wins"); 
+  {
+    Serial.print("Website Player Wins");
+    displayFrown(); 
+  } 
   else
-    Serial.print("Photon Player Wins"); 
+  {
+    Serial.print("Photon Player Wins");
+    displaySmile(); 
+  }  
+  return 1; 
 }
 
-void newGame(bool photonCall)
+int newGame(String photonCall)
 {
   row1Sticks = 1;
   row2Sticks = 3;
   row3Sticks = 5;
   row4Sticks = 7;
 
-  photonTurn = photonCall;
+  //photonTurn = photonCall;
   takenStick = 0;
   currentRow = 0; 
   gameWon = false; 
+  playAgain = true; 
 
-  if(photonCall)
-    digitalWrite(LEDPin, HIGH); 
+  if(photonCall == "true")
+  {
+    digitalWrite(LEDPin, HIGH);
+    photonTurn = true; 
+  } 
   else
-    digitalWrite(LEDPin, LOW); 
+  {
+    digitalWrite(LEDPin, LOW);
+    photonTurn = false; 
+  } 
 
   displaySticks(); 
+  return 1; 
 }
 
-bool checkForLoss()
+int checkForLoss(String dummy)
 {
   int sumSticks;
   sumSticks = row1Sticks + row2Sticks + row3Sticks + row4Sticks; 
@@ -303,10 +356,10 @@ bool checkForLoss()
   {
     Serial.println("Win found"); 
     gameWon = true;
-    return true;  
+    return 1;  
   }
   else
-    return false; 
+    return 0; 
 }
 
 void displaySticks()
@@ -340,7 +393,30 @@ void displaySticks()
   matrix.writeDisplay(); 
 }
 
-void updateSticks()
+void displaySmile()
 {
+  matrix.clear(); 
 
+  //mouth
+  matrix.drawPixel(6,2, LED_ON); matrix.drawPixel(6,3, LED_ON); matrix.drawPixel(6,4, LED_ON); matrix.drawPixel(6,5, LED_ON); 
+  matrix.drawPixel(5,1, LED_ON); matrix.drawPixel(5,6, LED_ON); 
+
+  //eyes
+  matrix.drawPixel(1,2, LED_ON); matrix.drawPixel(2,2, LED_ON); matrix.drawPixel(1,5, LED_ON); matrix.drawPixel(2,5, LED_ON); 
+
+  matrix.writeDisplay(); 
+}
+
+void displayFrown()
+{
+  matrix.clear(); 
+
+  //mouth
+  matrix.drawPixel(5,2, LED_ON); matrix.drawPixel(5,3, LED_ON); matrix.drawPixel(5,4, LED_ON); matrix.drawPixel(5,5, LED_ON); 
+  matrix.drawPixel(6,1, LED_ON); matrix.drawPixel(6,6, LED_ON); 
+
+  //eyes
+  matrix.drawPixel(1,2, LED_ON); matrix.drawPixel(2,2, LED_ON); matrix.drawPixel(1,5, LED_ON); matrix.drawPixel(2,5, LED_ON); 
+
+  matrix.writeDisplay(); 
 }
