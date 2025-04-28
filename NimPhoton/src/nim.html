@@ -1,50 +1,133 @@
 <html>
   <head>
     <title>NIMpossible</title>
+
+    <style>
+      h1 {
+      font-size: 48px; /* or even bigger if you want */
+      margin-bottom: 20px;
+      }
+
+      /* Center everything vertically */
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-family: Arial, sans-serif;
+        margin-top: 20px;
+      }
+    
+      /* Form and gameboard side-by-side */
+      #gameContainer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 40px; /* space between form and table */
+      }
+    
+      /* Bigger radio buttons */
+      #stickTake input[type="radio"] {
+        transform: scale(1.5); /* Make radios 1.5x bigger */
+        margin-right: 10px;
+      }
+    
+      #stickTake {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+      }
+
+      .stick {
+      color: red;
+      font-weight: bold;
+      }
+    
+      /* Gameboard table */
+      #gameboard {
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+    
+      #gameboard td {
+        width: 40px;
+        height: 60px;
+        text-align: center;
+        vertical-align: middle;
+        font-size: 36px;
+        
+      }
+
+      #stickTake label {
+      white-space: nowrap; /* prevent label text from breaking into two lines */
+      display: flex;
+      align-items: center;
+      font-size: 20px; /* make labels bigger too */
+      margin-bottom: 10px;
+      }
+    
+      /* Message text */
+      #message {
+        font-size: 24px;
+        margin: 20px;
+        color: red; 
+        font-weight: bold;
+      }
+    
+      /* Buttons */
+      button, input[type="submit"] {
+        margin-top: 10px;
+        font-size: 18px;
+        padding: 6px 12px;
+      }
+    </style>
+
   </head>
   
 <body>
 
 <h1>NIMpossible</h1>
 
+<div id="message"></div>
+<br>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script>
     // global variables
     var deviceID = "0a10aced202194944a067a68";
-    var accessToken = "464786ca8d3bb33534cfd6ab99305aa834cf4146";
+    var accessToken = "af75752e1cc0659f44d7cee40934482b120225d4";
     var baseURL = "https://api.particle.io/v1/devices/"
   </script>
 
-Current Gamestate: 
-<br> Row 1: <span id="numSticks_1"></span> sticks. 
-<br> Row 2: <span id="numSticks_2"></span> sticks.
-<br> Row 3: <span id="numSticks_3"></span> sticks.
-<br> Row 4: <span id="numSticks_4"></span> sticks.
-<br>
-<br>
-
-<div id="message"></div>
-<br>
-
-<div style="display: none">
-  <span id="notTurn"></span>
-  <span id="gameWon"></span>
-  <span id="gameActive"></span>
-</div>
-
- <form id="stickTake">
-    <input type="radio" name="mode" value="1">Row 1.<br>
-    <input type="radio" name="mode" value="2">Row 2.<br>
-    <input type="radio" name="mode" value="3">Row 3.<br>
-    <input type="radio" name="mode" value="4">Row 4.<br>
+<div id="gameContainer">
+  <form id="stickTake">
+    <label><input type="radio" name="mode" value="1"> Row 1</label>
+    <label><input type="radio" name="mode" value="2"> Row 2</label>
+    <label><input type="radio" name="mode" value="3"> Row 3</label>
+    <label><input type="radio" name="mode" value="4"> Row 4</label>
     <input id="removeStick" type="submit" value="Remove Stick">
   </form>
 
+  <table id="gameboard">
+    <tr id="row1"></tr>
+    <tr id="row2"></tr>
+    <tr id="row3"></tr>
+    <tr id="row4"></tr>
+  </table>
+</div>
+
   <button id="turnEnd" onclick="end()">End Turn</button>
   <button id="quitOut" onclick="exit()">Forfeit</button>
-  <br>
-  <br>
   <button id="startGame" onclick="reset()" value="false">New Game</button>
+
+  <div style="display: none">
+    <span id="numSticks_1"></span>
+    <span id="numSticks_2"></span>
+    <span id="numSticks_3"></span>
+    <span id="numSticks_4"></span>
+    <span id="notTurn"></span>
+    <span id="gameWon"></span>
+    <span id="gameActive"></span>
+  </div>
 
 <script> //remove stick call
     $("#stickTake").submit(function(event) {
@@ -55,7 +138,7 @@ Current Gamestate:
             method: "POST",
             headers: { "Authorization": "Bearer " + accessToken },
             data: { arg: $("input[name='mode']:checked").val() },
-            success: () => alert("Message Sent!")
+            //success: () => alert("Message Sent!")
 
         });
         pullData(); 
@@ -71,7 +154,7 @@ Current Gamestate:
             method: "POST",
             headers: { "Authorization": "Bearer " + accessToken },
             data: { arg: $("input[name='mode']:checked").val() },
-            success: () => alert("Message Sent!")
+            //success: () => alert("Message Sent!")
 
         });
         pullData(); 
@@ -87,7 +170,7 @@ Current Gamestate:
             method: "POST",
             headers: { "Authorization": "Bearer " + accessToken },
             data: { arg: $("input[name='mode']:checked").val() },
-            success: () => alert("Message Sent!")
+            //success: () => alert("Message Sent!")
 
         });
         pullData(); 
@@ -103,14 +186,47 @@ Current Gamestate:
             method: "POST",
             headers: { "Authorization": "Bearer " + accessToken },
             data: { arg: $("input[name='mode']:checked").val() },
-            success: () => alert("Message Sent!")
+            //success: () => alert("Message Sent!")
 
         });
         pullData(); 
   }
 </script>
 
-<script type="text/javascript"> //update state variables 
+
+<script> //show sticks
+  const maxSlots = 7; 
+  const startingSticksPerRow = { 1: 1, 2: 3, 3: 5, 4: 7};
+
+  function drawRow(rowNum) {
+    var sticksRemaining = Number(document.getElementById(`numSticks_${rowNum}`).innerText);
+    var startingSticks = startingSticksPerRow[rowNum];
+    var totalSlots = maxSlots; // Always 7 columns
+
+    var leftPadding = Math.floor((totalSlots - startingSticks) / 2);
+    var rowHTML = "";
+
+    rowHTML += `<td class="rowLabel">Row&nbsp;${rowNum}</td>`;
+
+    for (let i = 0; i < totalSlots; i++) {
+        if (i < leftPadding || i >= (leftPadding + startingSticks)) {
+            // Outer empty padding
+            rowHTML += "<td></td>";
+        } else {
+            let stickIndex = i - leftPadding;
+            if (stickIndex < sticksRemaining) {
+              rowHTML += "<td class='stick'>|</td>"; // still a stick here
+            } else {
+                rowHTML += "<td></td>"; // removed stick (empty)
+            }
+        }
+    }
+
+    document.getElementById(`row${rowNum}`).innerHTML = rowHTML;
+  }
+</script>
+
+<script type="text/javascript"> //evreything that gets checked regularly 
   var alertSent = false; 
 
   async function pullData() {
@@ -178,8 +294,22 @@ success: function(resp) {
               document.getElementById("gameActive").innerText = resp.result;},
       });
 
+      //update rows of sticks
+      drawRow(1);
+      drawRow(2);
+      drawRow(3);
+      drawRow(4);
+
       //disable buttons
-      var disableButtons = document.getElementById("notTurn").innerText == "true"; 
+      var disableButtons; 
+      if(document.getElementById("gameActive").innerText != "true")
+      {
+        disableButtons = true;
+      } 
+      else
+      {
+        disableButtons = document.getElementById("notTurn").innerText == "true";
+      } 
       document.getElementById("removeStick").disabled = disableButtons; 
       document.getElementById("turnEnd").disabled = disableButtons;
       document.getElementById("quitOut").disabled = disableButtons;

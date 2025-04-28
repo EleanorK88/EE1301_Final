@@ -11,7 +11,7 @@ SYSTEM_THREAD(ENABLED);
 SerialLogHandler logHandler(LOG_LEVEL_INFO);
 
 //Device ID: 0a10aced202194944a067a68
-//Access Token: 464786ca8d3bb33534cfd6ab99305aa834cf4146
+//Access Token: af75752e1cc0659f44d7cee40934482b120225d4
 
 //game state variables
 int row1Sticks;
@@ -85,8 +85,6 @@ void setup()
 
 void loop() 
 { 
-  label:
-
   //start new game
   if(digitalRead(endTurnPin) && !endTurnPressed)
   {
