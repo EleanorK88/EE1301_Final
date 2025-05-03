@@ -1,17 +1,14 @@
 // Include Particle Device OS APIs
 #include "Particle.h"
-#include "C:\Users\elean\EE1301\FinalProject\EE1301_Final\NimPhoton\lib\neopixel\src\neopixel.h"
-#include "C:\Users\elean\EE1301\FinalProject\EE1301_Final\NimPhoton\lib\Adafruit_GFX_RK\src\Adafruit_GFX_RK.h"
-#include "C:\Users\elean\EE1301\FinalProject\EE1301_Final\NimPhoton\lib\Adafruit_LEDBackpack_RK\src\Adafruit_LEDBackpack_RK.h"
+#include "neopixel.h"
+#include "Adafruit_GFX_RK.h"
+#include "LEDBackpack_RK.h"
 #include <string>
 using namespace std; 
 
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 SerialLogHandler logHandler(LOG_LEVEL_INFO);
-
-//Device ID: 0a10aced202194944a067a68
-//Access Token: af75752e1cc0659f44d7cee40934482b120225d4
 
 //game state variables
 int row1Sticks;
@@ -22,7 +19,7 @@ int currentRow;
 bool takenStick;
 bool photonTurn; 
 bool gameWon;
-bool playAgain = false; //this is a bad name, playAgain tracks if a game is active
+bool playAgain = false; //tracks if a game is active, the name is carryover from old structure
 
 //game methods
 int removeStick(String rowNumS); 
@@ -36,7 +33,7 @@ void displaySticks();
 void displaySmile();
 void displayFrown(); 
 
-//photon control variables 
+//photon variables 
 #define PIXEL_PIN SPI; 
 Adafruit_8x8matrix matrix = Adafruit_8x8matrix();
 int row1Pin = D2;
@@ -56,18 +53,22 @@ bool forfeitPressed = false;
 void setup() 
 {
   Serial.begin(9600);
-  matrix.begin(0x70); 
 
+  //settup and clear matrix
+  matrix.begin(0x70); 
+  matrix.clear(); 
+  matrix.writeDisplay();
+
+  //configure photon pins
   pinMode(row1Pin, INPUT_PULLDOWN);
   pinMode(row2Pin, INPUT_PULLDOWN);
   pinMode(row3Pin, INPUT_PULLDOWN);
   pinMode(row4Pin, INPUT_PULLDOWN);
   pinMode(endTurnPin, INPUT_PULLDOWN);
   pinMode(forfeitPin, INPUT_PULLDOWN);
-  pinMode(LEDPin, OUTPUT); 
-  matrix.clear(); 
-  matrix.writeDisplay(); 
+  pinMode(LEDPin, OUTPUT);  
 
+  //register cloud variables 
   Particle.variable("numSticks1", row1Sticks); 
   Particle.variable("numSticks2", row2Sticks); 
   Particle.variable("numSticks3", row3Sticks); 
@@ -76,11 +77,12 @@ void setup()
   Particle.variable("winner", gameWon);
   Particle.variable("currentGame", playAgain); 
 
+  //regiser cloud functions
+  //note: these function are all int function(string input){} since that is what cloud functions need to be
   Particle.function("takeStick", removeStick); 
   Particle.function("endTurn", endTurn);
   Particle.function("quit", forfeit);
   Particle.function("startGame", newGame);   
-  //Particle.function("checkLoss", checkForLoss);
 }
 
 void loop() 
@@ -98,26 +100,11 @@ void loop()
     endTurnPressed = false; 
   }
 
-  //quit program 
-  if(digitalRead(forfeitPin) && !forfeitPressed)
+  while(playAgain) //game is active
   {
-    Serial.println("Button forfeit pressed"); 
-    //playAgain = false; 
-    //add some way to end program
-    forfeitPressed = true; 
-  }
-  else if(!digitalRead(forfeitPin))
-  {
-    forfeitPressed = false; 
-  }
-
-  while(playAgain)
-  {
-    //while(true)
-    //{
       if(photonTurn)
       {
-        if(checkForLoss("dummy") == 1)
+        if(checkForLoss("dummy") == 1) //breadboard player has lost
         {
           Serial.println("Photon player loses!"); 
           displayFrown(); 
@@ -125,7 +112,8 @@ void loop()
           gameWon = true; 
           break; 
         }
-        while(photonTurn) //photon player takes actions
+
+        while(photonTurn) //breadboard player takes actions
         {
           Particle.process(); 
 
@@ -206,7 +194,7 @@ void loop()
             
       if(!photonTurn)
       {
-        if(checkForLoss("dummy") == 1)
+        if(checkForLoss("dummy") == 1) //website player has lost 
         {
           Serial.println("Website player loses"); 
           displaySmile(); 
@@ -216,28 +204,28 @@ void loop()
         } 
         while(!photonTurn) //website player can take actions
         {
-          Particle.process(); 
+          Particle.process(); //get function calls from HTML site  
 
-          if(gameWon)
-            break; 
+          if(gameWon) 
+            break; //exit while loop so new game can be started
         }
       }
-    //}
   }
 }
 
 int removeStick(String rowNumS)
 {
-  int rowNum = stoi((string)rowNumS);  
-  if(rowNum == 1 && (currentRow == 1 || currentRow == 0)) //could reformat this to read better
+  int rowNum = stoi((string)rowNumS); //convert sting input to integer 
+
+  if(rowNum == 1 && (currentRow == 1 || currentRow == 0)) //stick has not been removed from a different row on this turn
   {
-    if(row1Sticks > 0)
+    if(row1Sticks > 0) //there is at least one stick to be removed
     {
       currentRow = 1;
       row1Sticks--;
-      takenStick = true; 
+      takenStick = true; //turn can only be ended is takenStick is true
       Serial.println("Stick removed from row 1"); 
-      matrix.drawPixel(0,4, LED_OFF); 
+      matrix.drawPixel(0,4, LED_OFF); //update LED matrix
       matrix.drawPixel(1,4, LED_OFF);
     } 
   }
@@ -284,7 +272,7 @@ int removeStick(String rowNumS)
 
 int endTurn(String dummy)
 {
-  if(takenStick)
+  if(takenStick) //a stick has been removed this turn
   {
     photonTurn = !photonTurn; 
     takenStick = false; 
@@ -325,18 +313,17 @@ int newGame(String photonCall)
   row3Sticks = 5;
   row4Sticks = 7;
 
-  //photonTurn = photonCall;
   takenStick = 0;
   currentRow = 0; 
   gameWon = false; 
   playAgain = true; 
 
-  if(photonCall == "true")
+  if(photonCall == "true") //method called from breadboard
   {
     digitalWrite(LEDPin, HIGH);
     photonTurn = true; 
   } 
-  else
+  else //method called from website
   {
     digitalWrite(LEDPin, LOW);
     photonTurn = false; 
@@ -360,6 +347,7 @@ int checkForLoss(String dummy)
     return 0; 
 }
 
+//display starting configuration of sticks on LED matrix
 void displaySticks()
 {
   matrix.clear(); 
@@ -391,6 +379,7 @@ void displaySticks()
   matrix.writeDisplay(); 
 }
 
+//display smiley face on LED matrix, used when breadboard player wins 
 void displaySmile()
 {
   matrix.clear(); 
@@ -405,6 +394,7 @@ void displaySmile()
   matrix.writeDisplay(); 
 }
 
+//display frowny face on LED matrix, used when breadboard player loses 
 void displayFrown()
 {
   matrix.clear(); 
